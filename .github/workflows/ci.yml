@@ -34,7 +34,7 @@ jobs:
           fetch-depth: 0
       - name: Run Semgrep
         run: semgrep scan --config p/default --error
-                continue-on-error: true
+        continue-on-error: true
 
   sca:
     name: SCA (Dependency Check)
