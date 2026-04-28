@@ -15,8 +15,6 @@ jobs:
 
       - name: Secret Scanning (TruffleHog)
         uses: trufflesecurity/trufflehog@main
-        with:
-          extra_args: --results=verified,unknown,unverified
 
   sast:
     name: Semgrep Scan
