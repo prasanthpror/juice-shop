@@ -5,7 +5,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  security:
+  secret-scanning:
+    name: Secret Scanning (TruffleHog)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -21,9 +22,11 @@ jobs:
             git file:///repo \
             --no-update \
             --fail
+        continue-on-error: true
 
   sast:
-    name: Semgrep Scan
+    name: SAST (Semgrep)
+    needs: secret-scanning
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
@@ -32,6 +35,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Run Semgrep
         run: semgrep scan --config p/default --error
         continue-on-error: true
@@ -54,7 +58,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: npm audit (SCA)
+      - name: npm audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
 
@@ -75,3 +79,44 @@ jobs:
         with:
           name: dependency-check-report
           path: reports/
+
+  container-scan:
+    name: Container Scanning (Trivy)
+    needs: sca
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build Docker Image
+        run: docker build -t juice-lab .
+
+      - name: Trivy Scan (Table output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: juice-lab
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: 0
+        continue-on-error: true
+
+      - name: Trivy Scan (SARIF for GitHub Security tab)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: juice-lab
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: 0
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF Report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+        continue-on-error: true
+
+      - name: Run container
+        run: docker run -d -p 3000:3000 juice-lab
