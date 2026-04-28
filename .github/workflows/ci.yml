@@ -1,33 +1,31 @@
 name: ci-cd
 
 on:
-push:
-workflow_dispatch:
+  push:
+  workflow_dispatch:
 
 jobs:
-security:
-runs-on: ubuntu-latest
-steps:
-- name: Checkout code
-uses: actions/checkout@v4
-with:
-fetch-depth: 0
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  - name: Secret Scanning (TruffleHog)
-    uses: trufflesecurity/trufflehog@main
-    with:
-      extra_args: --results=verified,unknown
+      - name: Secret Scanning (TruffleHog)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --results=verified,unknown
 
-sast:
-name: Semgrep Scan
-runs-on: ubuntu-latest
-container:
-image: semgrep/semgrep
-steps:
-- name: Checkout code
-uses: actions/checkout@v4
+  sast:
+    name: Semgrep Scan
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-
-  - name: Run Semgrep
-    run: semgrep scan --config p/default --error
-
+      - name: Run Semgrep
+        run: semgrep scan --config p/default --error
