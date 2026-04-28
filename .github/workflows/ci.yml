@@ -1,7 +1,7 @@
 name: ci-cd
-
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -13,13 +13,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Secret Scanning (TruffleHog)
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: "${{ github.event.repository.default_branch }}"
-          head: HEAD
-          extra_args: --only-verified
+      - name: TruffleHog Secret Scan
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/repo" \
+            ghcr.io/trufflesecurity/trufflehog:latest \
+            git file:///repo \
+            --no-update \
+            --fail
 
   sast:
     name: Semgrep Scan
@@ -30,7 +31,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
-
+          fetch-depth: 0
       - name: Run Semgrep
         run: semgrep scan --config p/default --error
