@@ -1,4 +1,4 @@
-FROM node:24 AS installer
+FROM node:14-buster AS installer        # ← old vulnerable builder
 COPY . /juice-shop
 WORKDIR /juice-shop
 RUN npm i -g typescript ts-node
@@ -15,12 +15,11 @@ RUN rm data/chatbot/botDefaultTrainingData.json || true
 RUN rm ftp/legal.md || true
 RUN rm i18n/*.json || true
 
-# keep version in sync with package.json
 ARG CYCLONEDX_NPM_VERSION='^2.0.0||^3.0.0||^4.0.0'
 RUN npm install -g @cyclonedx/cyclonedx-npm@$CYCLONEDX_NPM_VERSION
 RUN npm run sbom
 
-FROM gcr.io/distroless/nodejs24-debian13
+FROM node:14-buster                     # ← old vulnerable final image
 ARG BUILD_DATE
 ARG VCS_REF
 LABEL maintainer="Bjoern Kimminich <bjoern.kimminich@owasp.org>" \
@@ -39,4 +38,4 @@ WORKDIR /juice-shop
 COPY --from=installer --chown=65532:0 /juice-shop .
 USER 65532
 EXPOSE 3000
-CMD ["/juice-shop/build/app.js"]
+CMD ["node", "/juice-shop/build/app.js"]    # ← changed from distroless path
